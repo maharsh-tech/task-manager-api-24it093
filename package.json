@@ -1,0 +1,16 @@
+{
+  "name": "task-manager-api-24it093",
+  "version": "1.0.0",
+  "description": "Express REST API for task management (Practical Week 4)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["express", "rest", "tasks"],
+  "author": "Maharsh Solanki",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
