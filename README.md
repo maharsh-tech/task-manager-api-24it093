@@ -1,10 +1,19 @@
 # Task Manager API (24IT093)
 
-Express REST API for task management — **Practical 4: RESTful API with Node.js and Express**.
+Express REST API for task management — **Practical 4 & 5: RESTful API with Node.js, Express, and MongoDB**.
 
 ---
 
 ## Getting Started
+
+1. Copy the environment file and add your MongoDB connection string:
+
+```bash
+cp .env.example .env
+# Edit .env and set MONGO_URI
+```
+
+2. Install dependencies and start the server:
 
 ```bash
 npm install
@@ -13,9 +22,16 @@ npm start          # http://localhost:5000
 
 The API is tested with Postman or Thunder Client against `http://localhost:5000`.
 
+On successful startup you should see:
+
+```
+MongoDB connected
+Server running on port 5000
+```
+
 ---
 
-## Practical 4 – RESTful API with Node.js and Express
+## Practical 5 – MongoDB Integration and Schema Design with Mongoose
 
 ### Architecture Overview
 
@@ -34,17 +50,37 @@ Express Router  (/tasks)
 └── DELETE /tasks/:id   → deleteTask
         |
         v
+Mongoose ODM  (models/Task.js)
+        |
+        v
+MongoDB Database  (tasks collection)
+        |
+        v
 [404 Handler] → [Global Error Handler]
 ```
 
 ### Features Implemented
 
-- **CRUD endpoints** for tasks stored in an in-memory array
+- **MongoDB persistence** via Mongoose — tasks survive server restarts
+- **Task schema** with required fields, defaults, and enum validation
+- **CRUD endpoints** using `Task.find()`, `Task.create()`, `Task.findByIdAndUpdate()`, `Task.findByIdAndDelete()`
 - **Request logging middleware** — logs method, URL, and ISO timestamp for every request
 - **Content-Type validation** — rejects POST/PUT requests without `application/json`
-- **Task ID validation** — route-specific middleware validates numeric IDs on GET/PUT/DELETE by ID
-- **404 handler** — structured JSON response for undefined routes
-- **Global error handler** — last middleware in the pipeline; returns `{ error: 'Something went wrong' }` with status 500
+- **Task ID validation** — validates MongoDB ObjectId format on GET/PUT/DELETE by ID
+- **404 handler** — structured JSON response for undefined routes and missing tasks
+- **Global error handler** — returns structured validation errors (not raw Mongoose objects)
+- **Pre-save hook** — automatically trims whitespace from the title field
+- **Priority field** — optional enum: `low`, `medium`, `high`
+
+### Task Schema
+
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `title` | String | required |
+| `description` | String | optional |
+| `completed` | Boolean | default `false` |
+| `priority` | String | enum: `low`, `medium`, `high` (optional) |
+| `createdAt` | Date | default `Date.now` |
 
 ### API Endpoints
 
@@ -60,10 +96,23 @@ Express Router  (/tasks)
 
 ```json
 {
-  "id": "1",
+  "_id": "66b1a2c3d4e5f6789012345",
   "title": "Study Express",
-  "description": "Week 4 lab",
-  "completed": false
+  "description": "Week 5 lab",
+  "completed": false,
+  "priority": "medium",
+  "createdAt": "2026-08-07T04:12:00.000Z"
+}
+```
+
+**Validation error shape:**
+
+```json
+{
+  "error": "Validation failed",
+  "details": [
+    { "field": "title", "message": "Path `title` is required." }
+  ]
 }
 ```
 
@@ -80,19 +129,44 @@ curl http://localhost:5000/tasks
 # Create a task
 curl -X POST http://localhost:5000/tasks \
   -H "Content-Type: application/json" \
-  -d '{"title":"Study Express","description":"Week 4 lab"}'
+  -d '{"title":"Study Express","description":"Week 5 lab","priority":"high"}'
+
+# Get task by ID
+curl http://localhost:5000/tasks/<task-id>
+
+# Update a task
+curl -X PUT http://localhost:5000/tasks/<task-id> \
+  -H "Content-Type: application/json" \
+  -d '{"completed":true}'
+
+# Delete a task
+curl -X DELETE http://localhost:5000/tasks/<task-id>
 ```
+
+**Persistence check:** Create a task, restart the server, then `GET /tasks` — the task should still be present in MongoDB.
 
 ### Theory & Analysis Questions
 
-#### 1. Why must the error handling middleware be defined last in the middleware chain?
-Express processes middleware in registration order. The error handler has four parameters `(err, req, res, next)` and only runs when `next(err)` is called or an error is thrown. If it is registered before routes, unmatched errors from routes defined later will bypass it. Placing it last ensures every route and middleware has already executed, so any error propagates to the single centralized handler.
+#### 1. What is the purpose of a schema in a NoSQL database like MongoDB, given that MongoDB itself is schema-less?
+MongoDB stores flexible documents without enforcing a fixed table structure at the database level. A Mongoose schema adds an application-level contract: it defines expected field types, required fields, defaults, and enums before data reaches the database. This gives developers predictable data shape and validation without sacrificing MongoDB's document flexibility.
 
-#### 2. What is the difference between `app.use()` and a route-specific middleware?
-`app.use()` registers middleware globally — it runs for every request matching the path prefix (or all requests if no path is given). Route-specific middleware is attached to individual routes (e.g. `router.put('/:id', validateTaskId, updateTask)`) and only executes for requests hitting that route. Global middleware suits cross-cutting concerns like logging; route-specific middleware suits validation tied to a particular endpoint.
+#### 2. Why is it important to define required fields and default values at the schema level rather than relying on frontend validation alone?
+Frontend validation can be bypassed — any client (Postman, curl, another app) can send requests directly to the API. Schema-level validation ensures invalid data is rejected at the server regardless of the client. Default values (`completed: false`, `createdAt: Date.now`) are applied consistently for every create operation, even when the client omits those fields.
 
-#### 3. Why is it considered bad practice to send raw error stack traces to the client?
-Stack traces expose internal file paths, function names, and library versions that help attackers map the server architecture. They also leak implementation details unrelated to the user's request. A generic `{ error: 'Something went wrong' }` response keeps the client informed while detailed diagnostics are logged server-side via `console.error(err.stack)`.
+#### 3. What happens internally when a document fails Mongoose validation — where is the request stopped?
+When a Mongoose operation violates the schema (e.g. missing required `title`), Mongoose throws a `ValidationError` before the document is saved. The controller's `catch` block forwards this to the global error handler via `next(err)`, which converts it into a structured 400 JSON response. The invalid document never reaches MongoDB.
+
+---
+
+## Practical 4 – RESTful API with Node.js and Express
+
+Practical 4 established the Express middleware pipeline and CRUD route structure. Practical 5 replaced the in-memory array with MongoDB persistence while keeping the same route paths and middleware order.
+
+### Features from Practical 4 (retained)
+
+- Modular `routes/`, `controllers/`, `middleware/` structure
+- Request logging, Content-Type validation, 404 handler, global error handler
+- Same CRUD endpoints at `/tasks`
 
 ---
 
@@ -100,18 +174,21 @@ Stack traces expose internal file paths, function names, and library versions th
 
 ```
 task-manager-api-24it093/
-├── server.js                   # App entry: middleware pipeline + listen(5000)
-├── package.json                # Express dependency & start script
+├── .env.example                # MongoDB URI template (copy to .env)
+├── server.js                   # App entry: dotenv, mongoose connect, listen(5000)
+├── package.json
+├── models/
+│   └── Task.js                 # Mongoose schema, validation, pre-save hooks
 ├── routes/
 │   └── tasks.js                # CRUD route definitions + route middleware
 ├── controllers/
-│   └── taskController.js       # In-memory task storage & handler logic
+│   └── taskController.js       # Async Mongoose CRUD handlers
 └── middleware/
     ├── logger.js               # Global request logging
     ├── validateContentType.js  # POST/PUT Content-Type check
-    ├── validateTaskId.js       # Route-specific numeric ID validation
+    ├── validateTaskId.js       # MongoDB ObjectId validation
     ├── notFound.js             # 404 handler for undefined routes
-    └── errorHandler.js         # Global error handler (last in chain)
+    └── errorHandler.js         # ValidationError, CastError, and 500 handling
 ```
 
 ---

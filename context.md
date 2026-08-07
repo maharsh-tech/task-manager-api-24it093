@@ -3,23 +3,29 @@
 ## Project Overview
 
 - **Project Name**: Task Manager API (`task-manager-api-24it093`)
-- **Repository**: Standalone Express backend for Practical 4
-- **Backend Stack**: Node.js, Express 4 (CommonJS), in-memory storage
-- **Data Storage**: In-memory task array (no database in Week 4)
+- **Repository**: Standalone Express backend for Practical 4 and Practical 5
+- **Backend Stack**: Node.js, Express 4 (CommonJS), MongoDB via Mongoose
+- **Data Storage**: MongoDB Atlas (`task-manager-api` database, `tasks` collection)
 
 ---
 
 ## Current Architecture
 
 ```
-task-manager-api-24it093/
-├── server.js                   # App entry: middleware pipeline + listen(5000)
-├── routes/                     # CRUD route definitions
-├── controllers/                # In-memory task storage & handler logic
-└── middleware/                 # Logging, validation, 404, error handling
+Client (Postman / Thunder Client)
+        |
+        v
+Express (server.js :5000)
+        |
+        v
+Mongoose ODM (models/Task.js)
+        |
+        v
+MongoDB Atlas
+        └── tasks collection
 ```
 
-The server runs on port 5000. API testing is done via Postman or Thunder Client.
+The server connects to MongoDB on startup via `MONGO_URI` in `.env`. The API does not start if the database connection fails.
 
 ---
 
@@ -29,39 +35,51 @@ The server runs on port 5000. API testing is done via Postman or Thunder Client.
 task-manager-api-24it093/
 ├── context.md                      # Permanent project memory (this file)
 ├── README.md                       # Setup instructions & practical documentation
-├── package.json                    # Express dependency & start script
-├── server.js                       # App entry: middleware pipeline + listen(5000)
+├── .env.example                    # MongoDB URI template (committed)
+├── .env                            # Local secrets — gitignored
+├── package.json                    # Express, Mongoose, dotenv dependencies
+├── server.js                       # dotenv, mongoose.connect, middleware pipeline
+├── models/
+│   └── Task.js                     # Mongoose schema, validation, pre-save hooks
 ├── routes/
 │   └── tasks.js                    # CRUD route definitions + route middleware
 ├── controllers/
-│   └── taskController.js           # In-memory task storage & handler logic
+│   └── taskController.js           # Async Mongoose CRUD handlers
 └── middleware/
     ├── logger.js                   # Global request logging
     ├── validateContentType.js      # POST/PUT Content-Type check
-    ├── validateTaskId.js           # Route-specific numeric ID validation
+    ├── validateTaskId.js           # MongoDB ObjectId validation
     ├── notFound.js                 # 404 handler for undefined routes
-    └── errorHandler.js             # Global error handler (last in chain)
+    └── errorHandler.js             # ValidationError, CastError, 500 handling
 ```
 
 ---
 
 ## Major Design Decisions
 
-### 1. Modular structure (`routes/`, `controllers/`, `middleware/`)
+### 1. Modular structure (`routes/`, `controllers/`, `middleware/`, `models/`)
 
-**Why:** The handbook teaches middleware pipeline architecture. Splitting concerns into folders mirrors Express best practices and makes each middleware independently testable.
+**Why:** The handbook teaches middleware pipeline architecture. Splitting concerns into folders mirrors Express best practices and keeps Mongoose schema separate from HTTP handlers.
 
-**Benefit:** Adding new routes or middleware requires no restructuring.
+**Benefit:** Adding new routes, middleware, or models requires no restructuring.
 
-### 2. Numeric string IDs with auto-increment
+### 2. MongoDB ObjectId as task identifier
 
-**Why:** Simple in-memory ID generation (`String(nextId++)`) satisfies the handbook's `:id` parameter and enables straightforward regex validation (`/^\d+$/`) in `validateTaskId`.
+**Why:** Practical 5 replaces in-memory numeric IDs with MongoDB's native `_id` (ObjectId). Mongoose auto-generates these on `Task.create()`.
 
-**Assumption:** IDs are positive integers stored as strings for consistent JSON serialization.
+**Assumption:** Week 6 frontend integration will use `_id` from API responses when calling `/tasks/:id`.
 
-### 3. Validation split between middleware and controller
+### 3. Validation split between middleware, schema, and error handler
 
-**Why:** Route-specific concerns (ID format, Content-Type) live in middleware. Business rules (title required, field types) live in the controller. This matches the handbook's distinction between `app.use()` and route-specific middleware.
+**Why:** Route-specific concerns (ObjectId format, Content-Type) live in middleware. Field rules (required title, enum priority, defaults) live in the Mongoose schema. The error handler converts Mongoose `ValidationError` into structured JSON — never raw error objects.
+
+### 4. Pre-save and pre-update title trimming
+
+**Why:** Supplementary handbook requirement. A `pre('save')` hook trims title on create; a `pre('findOneAndUpdate')` hook trims title on PUT so whitespace-only titles fail schema validation after trimming.
+
+### 5. Connection-gated server startup
+
+**Why:** Express only calls `app.listen()` after `mongoose.connect()` succeeds. Prevents serving CRUD requests against a disconnected database.
 
 ---
 
@@ -71,16 +89,30 @@ task-manager-api-24it093/
 |-------|-----------|---------|
 | Backend runtime | Node.js | 18+ |
 | Backend framework | Express | ^4.21.2 |
+| ODM | Mongoose | ^8.x |
+| Environment config | dotenv | ^16.x |
+| Database | MongoDB Atlas | Cloud |
 | Backend module system | CommonJS | (default) |
 
 ---
 
-## Practical 4 – RESTful API with Node.js and Express
+## Completed Practicals
+
+### Practical 4 – RESTful API with Node.js and Express
 
 - Express server on port 5000 with full CRUD for `/tasks`
-- In-memory task array (no database)
+- In-memory task array (replaced in Practical 5)
 - Middleware pipeline: logging → routes → 404 handler → global error handler
 - Supplementary: Content-Type validation, task ID validation, structured 404 responses
+
+### Practical 5 – MongoDB Integration and Schema Design with Mongoose
+
+- MongoDB Atlas connection via `MONGO_URI` in `.env`
+- Task schema: `title` (required), `description`, `completed` (default false), `createdAt` (default now)
+- Supplementary: `priority` enum (`low`, `medium`, `high`), pre-save title trim hook
+- CRUD via `Task.find()`, `Task.create()`, `Task.findByIdAndUpdate()`, `Task.findByIdAndDelete()`
+- Structured validation errors via global error handler
+- Data persists across server restarts
 
 ---
 
@@ -88,29 +120,39 @@ task-manager-api-24it093/
 
 | Area | Status |
 |------|--------|
-| Backend CRUD (`/tasks`) | Complete |
+| MongoDB connection | Complete |
+| Task schema + model | Complete |
+| Backend CRUD (`/tasks`) | Complete (MongoDB-backed) |
 | Logging middleware | Complete |
 | Content-Type validation | Complete |
-| Task ID validation | Complete |
+| ObjectId validation | Complete |
 | 404 handler | Complete |
-| Global error handler | Complete |
+| Global error handler (ValidationError) | Complete |
+| Pre-save title trim | Complete |
+| Priority enum field | Complete |
+| Frontend integration | Not started (Week 6) |
+| JWT authentication | Not started (Week 7) |
+| CORS | Not started (Week 6) |
 
 ---
 
 ## Coding Conventions
 
-- **Backend**: CommonJS (`require`/`module.exports`), one export per middleware file, controllers handle business logic, routes wire middleware + handlers
-- **API responses**: Consistent JSON objects with `{ error: "..." }` for failures and task objects for successes
-- **HTTP status codes**: 200 (read/update/delete success), 201 (create), 400 (validation), 404 (not found), 500 (server error)
+- **Backend**: CommonJS (`require`/`module.exports`), async controllers with `try/catch` + `next(err)`
+- **API responses**: Consistent JSON with `{ error: "..." }` for failures; Mongoose documents for successes
+- **Validation errors**: `{ error: "Validation failed", details: [{ field, message }] }` — never raw Mongoose objects
+- **HTTP status codes**: 200, 201, 400 (validation/invalid ID), 404 (not found), 500 (server error)
 - **Git commits**: Conventional Commits format (`feat:`, `docs:`, etc.)
+- **Secrets**: `.env` gitignored; `.env.example` committed with placeholders
 
 ---
 
 ## Important Constraints
 
-- Week 4 uses in-memory storage only — no MongoDB, Docker, or authentication
-- Task data is lost on server restart (expected for in-memory storage)
-- No CORS configuration (not required for Postman-based testing)
+- MongoDB connection string must stay in `.env` — never committed to git
+- No CORS configuration yet (Postman testing only; Week 6 will add frontend wiring)
+- No JWT or authentication yet (Week 7)
+- No Docker, caching, or EventEmitter yet (Weeks 9–11)
 
 ---
 
@@ -118,14 +160,18 @@ task-manager-api-24it093/
 
 ```bash
 npm install
-npm start              # http://localhost:5000
+npm start              # MongoDB connected → Server running on port 5000
 ```
+
+Test CRUD in Postman against `http://localhost:5000/tasks`. Restart the server to confirm data persists in MongoDB.
 
 ---
 
-## Assumptions Made During Week 4 Implementation
+## Assumptions Made During Implementation
 
-- Task objects include `id`, `title`, `description`, and `completed` fields (handbook specifies CRUD but not exact schema; `title` is required)
-- IDs are auto-incremented positive integers stored as strings
-- Postman/Thunder Client is the primary manual testing tool
+- Task objects use MongoDB `_id` instead of numeric string `id` from Practical 4
+- Database name `task-manager-api` on MongoDB Atlas cluster
+- `title` is required at schema level; whitespace-only titles fail after pre-save trim
+- `priority` is optional; invalid enum values return structured 400 validation errors
+- Postman/Thunder Client is the primary testing tool
 - Lab screenshots are captured manually outside the repository
