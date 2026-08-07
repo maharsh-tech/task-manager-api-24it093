@@ -1,9 +1,11 @@
+const mongoose = require('mongoose')
+
 function validateTaskId(req, res, next) {
   const { id } = req.params
 
-  if (!/^\d+$/.test(id)) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({
-      error: 'Invalid task ID format. ID must be a positive integer.',
+      error: 'Invalid task ID format.',
     })
   }
 
