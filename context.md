@@ -114,6 +114,12 @@ task-manager-api-24it093/
 - Structured validation errors via global error handler
 - Data persists across server restarts
 
+### Practical 6 – Full Stack Integration (CORS for React)
+
+- `cors` middleware enabled so `http://localhost:5173` can call `http://localhost:5000`
+- Frontend lives in separate repo `maharshsolanki-v2` (no monorepo merge)
+- No Task schema or controller changes for this practical
+
 ---
 
 ## Current Implementation Status
@@ -130,9 +136,9 @@ task-manager-api-24it093/
 | Global error handler (ValidationError) | Complete |
 | Pre-save title trim | Complete |
 | Priority enum field | Complete |
-| Frontend integration | Not started (Week 6) |
+| CORS | Complete (Practical 6) |
+| Frontend integration | Complete in `maharshsolanki-v2` (Practical 6) |
 | JWT authentication | Not started (Week 7) |
-| CORS | Not started (Week 6) |
 
 ---
 
@@ -150,7 +156,7 @@ task-manager-api-24it093/
 ## Important Constraints
 
 - MongoDB connection string must stay in `.env` — never committed to git
-- No CORS configuration yet (Postman testing only; Week 6 will add frontend wiring)
+- CORS is enabled globally for local frontend development (Practical 6)
 - No JWT or authentication yet (Week 7)
 - No Docker, caching, or EventEmitter yet (Weeks 9–11)
 

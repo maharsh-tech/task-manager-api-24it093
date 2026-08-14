@@ -1,6 +1,8 @@
 # Task Manager API (24IT093)
 
-Express REST API for task management — **Practical 4 & 5: RESTful API with Node.js, Express, and MongoDB**.
+Express REST API for task management — **Practical 4, 5 & 6: RESTful API with Node.js, Express, MongoDB, and CORS for React**.
+
+Frontend (separate repo): [maharshsolanki-v2](https://github.com/maharsh-tech/maharshsolanki-v2)
 
 ---
 
@@ -20,7 +22,7 @@ npm install
 npm start          # http://localhost:5000
 ```
 
-The API is tested with Postman or Thunder Client against `http://localhost:5000`.
+The API works with Postman/Thunder Client and with the React frontend on `http://localhost:5173` (CORS enabled).
 
 On successful startup you should see:
 
@@ -28,6 +30,26 @@ On successful startup you should see:
 MongoDB connected
 Server running on port 5000
 ```
+
+### Dual-server local setup (Practical 6)
+
+1. Start this API on port **5000** (`npm start`).
+2. In the frontend repo, run `npm run dev` (Vite on port **5173**).
+3. The React app calls `http://localhost:5000/tasks` via `src/api.js`.
+
+---
+
+## Practical 6 – Full Stack Integration (CORS)
+
+### What changed on the backend
+
+- Installed and enabled the `cors` package so the React dev server (`localhost:5173`) can call this API from the browser.
+- Middleware order: `express.json()` → `cors()` → request logger → `/tasks` routes → 404 → error handler.
+- No schema or CRUD handler changes — same MongoDB-backed endpoints as Practical 5.
+
+### Why CORS is required
+
+Browsers block cross-origin requests by default. The frontend origin (`http://localhost:5173`) differs from the API origin (`http://localhost:5000`), so without `Access-Control-Allow-*` headers the browser rejects responses. `app.use(cors())` adds those headers so `fetch` from React succeeds.
 
 ---
 

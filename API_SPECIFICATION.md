@@ -18,6 +18,7 @@ RESTful JSON API for managing tasks. Data is persisted in **MongoDB** via **Mong
 | Request body format | JSON |
 | Response format | JSON |
 | Authentication | None (Week 7) |
+| CORS | Enabled (`cors` middleware, Practical 6) |
 | Database | MongoDB Atlas (`task-manager-api` database, `tasks` collection) |
 
 ---
@@ -48,6 +49,7 @@ Every request passes through the following order:
 ```
 Request
   → express.json()
+  → cors()
   → requestLogger
   → /tasks router (route-specific middleware on some routes)
   → notFoundHandler (undefined routes)
@@ -58,6 +60,7 @@ Request
 | Middleware | Scope | Purpose |
 |------------|-------|---------|
 | `express.json()` | Global | Parse JSON request bodies |
+| `cors()` | Global | Allow browser requests from React (`localhost:5173`) — Practical 6 |
 | `requestLogger` | Global | Log method, URL, ISO timestamp to console |
 | `validateContentType` | POST, PUT `/tasks` | Require `Content-Type: application/json` |
 | `validateTaskId` | GET, PUT, DELETE `/tasks/:id` | Validate MongoDB ObjectId format |
