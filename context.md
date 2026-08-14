@@ -91,6 +91,7 @@ task-manager-api-24it093/
 | Backend framework | Express | ^4.21.2 |
 | ODM | Mongoose | ^8.x |
 | Environment config | dotenv | ^16.x |
+| CORS | cors | ^2.x |
 | Database | MongoDB Atlas | Cloud |
 | Backend module system | CommonJS | (default) |
 
