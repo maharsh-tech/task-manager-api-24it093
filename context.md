@@ -117,7 +117,8 @@ task-manager-api-24it093/
 
 ### Practical 6 – Full Stack Integration (CORS for React)
 
-- `cors` middleware enabled so `http://localhost:5173` can call `http://localhost:5000`
+- `cors` middleware enabled with origin from `CORS_ORIGIN` in `.env`
+- `PORT` read from `.env`
 - Frontend lives in separate repo `maharshsolanki-v2` (no monorepo merge)
 - No Task schema or controller changes for this practical
 
@@ -157,7 +158,8 @@ task-manager-api-24it093/
 ## Important Constraints
 
 - MongoDB connection string must stay in `.env` — never committed to git
-- CORS is enabled globally for local frontend development (Practical 6)
+- `PORT` and `CORS_ORIGIN` configured via `.env` (see `.env.example`)
+- CORS is enabled for the frontend origin defined in `CORS_ORIGIN`
 - No JWT or authentication yet (Week 7)
 - No Docker, caching, or EventEmitter yet (Weeks 9–11)
 

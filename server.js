@@ -9,10 +9,21 @@ const errorHandler = require('./middleware/errorHandler')
 const tasksRouter = require('./routes/tasks')
 
 const app = express()
-const PORT = 5000
+const PORT = Number(process.env.PORT) || 5000
+const CORS_ORIGIN = process.env.CORS_ORIGIN
+
+if (!process.env.MONGO_URI) {
+  console.error('Missing MONGO_URI in .env')
+  process.exit(1)
+}
+
+if (!CORS_ORIGIN) {
+  console.error('Missing CORS_ORIGIN in .env')
+  process.exit(1)
+}
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({ origin: CORS_ORIGIN }))
 app.use(requestLogger)
 
 app.use('/tasks', tasksRouter)
@@ -26,6 +37,7 @@ mongoose
     console.log('MongoDB connected')
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`)
+      console.log(`CORS origin: ${CORS_ORIGIN}`)
     })
   })
   .catch((err) => {

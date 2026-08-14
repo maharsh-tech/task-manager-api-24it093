@@ -8,34 +8,38 @@ Frontend (separate repo): [maharshsolanki-v2](https://github.com/maharsh-tech/ma
 
 ## Getting Started
 
-1. Copy the environment file and add your MongoDB connection string:
+1. Copy the environment file and configure values:
 
 ```bash
 cp .env.example .env
-# Edit .env and set MONGO_URI
+# Edit .env:
+#   MONGO_URI     — MongoDB Atlas connection string
+#   PORT          — API port (default example: 5000)
+#   CORS_ORIGIN   — allowed frontend origin (example: http://localhost:5173)
 ```
 
 2. Install dependencies and start the server:
 
 ```bash
 npm install
-npm start          # http://localhost:5000
+npm start
 ```
 
-The API works with Postman/Thunder Client and with the React frontend on `http://localhost:5173` (CORS enabled).
+The API works with Postman/Thunder Client and with the React frontend origin set in `CORS_ORIGIN`.
 
 On successful startup you should see:
 
 ```
 MongoDB connected
-Server running on port 5000
+Server running on port <PORT>
+CORS origin: <CORS_ORIGIN>
 ```
 
 ### Dual-server local setup (Practical 6)
 
-1. Start this API on port **5000** (`npm start`).
-2. In the frontend repo, run `npm run dev` (Vite on port **5173**).
-3. The React app calls `http://localhost:5000/tasks` via `src/api.js`.
+1. Start this API (`npm start`) using values from `.env`.
+2. In the frontend repo, set `VITE_API_BASE_URL` to this API and run `npm run dev`.
+3. The React app calls the API via `src/api.js` (no hardcoded host).
 
 ---
 
@@ -43,13 +47,14 @@ Server running on port 5000
 
 ### What changed on the backend
 
-- Installed and enabled the `cors` package so the React dev server (`localhost:5173`) can call this API from the browser.
-- Middleware order: `express.json()` → `cors()` → request logger → `/tasks` routes → 404 → error handler.
+- Installed and enabled the `cors` package with **origin from `CORS_ORIGIN` in `.env`**.
+- `PORT` also comes from `.env`.
+- Middleware order: `express.json()` → `cors({ origin })` → request logger → `/tasks` routes → 404 → error handler.
 - No schema or CRUD handler changes — same MongoDB-backed endpoints as Practical 5.
 
 ### Why CORS is required
 
-Browsers block cross-origin requests by default. The frontend origin (`http://localhost:5173`) differs from the API origin (`http://localhost:5000`), so without `Access-Control-Allow-*` headers the browser rejects responses. `app.use(cors())` adds those headers so `fetch` from React succeeds.
+Browsers enforce the same-origin policy. The frontend origin differs from the API origin, so without `Access-Control-Allow-*` headers the browser rejects responses. Configuring `CORS_ORIGIN` in `.env` keeps that value out of source code.
 
 ---
 

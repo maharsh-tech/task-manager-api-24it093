@@ -13,12 +13,12 @@ RESTful JSON API for managing tasks. Data is persisted in **MongoDB** via **Mong
 
 | Property | Value |
 |----------|-------|
-| Base URL | `http://localhost:5000` |
+| Base URL | From `PORT` in `.env` (example: `http://localhost:5000`) |
 | Protocol | HTTP |
 | Request body format | JSON |
 | Response format | JSON |
 | Authentication | None (Week 7) |
-| CORS | Enabled (`cors` middleware, Practical 6) |
+| CORS | `CORS_ORIGIN` from `.env` (Practical 6) |
 | Database | MongoDB Atlas (`task-manager-api` database, `tasks` collection) |
 
 ---
@@ -60,7 +60,7 @@ Request
 | Middleware | Scope | Purpose |
 |------------|-------|---------|
 | `express.json()` | Global | Parse JSON request bodies |
-| `cors()` | Global | Allow browser requests from React (`localhost:5173`) — Practical 6 |
+| `cors({ origin })` | Global | Allow browser requests from `CORS_ORIGIN` in `.env` — Practical 6 |
 | `requestLogger` | Global | Log method, URL, ISO timestamp to console |
 | `validateContentType` | POST, PUT `/tasks` | Require `Content-Type: application/json` |
 | `validateTaskId` | GET, PUT, DELETE `/tasks/:id` | Validate MongoDB ObjectId format |
