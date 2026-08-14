@@ -3,19 +3,27 @@
 ## Project Overview
 
 - **Project Name**: Task Manager API (`task-manager-api-24it093`)
-- **Repository**: Standalone Express backend for Practical 4 and Practical 5
-- **Backend Stack**: Node.js, Express 4 (CommonJS), MongoDB via Mongoose
+- **Repository**: Standalone Express backend for Practicals 4, 5, and 6
+- **Backend Stack**: Node.js, Express 4 (CommonJS), MongoDB via Mongoose, `cors`, `dotenv`
 - **Data Storage**: MongoDB Atlas (`task-manager-api` database, `tasks` collection)
+- **Frontend repo**: [maharshsolanki-v2](https://github.com/maharsh-tech/maharshsolanki-v2) (separate — no monorepo)
+- **Env config**: `.env` (gitignored) + `.env.example` (committed)
 
 ---
 
 ## Current Architecture
 
 ```
-Client (Postman / Thunder Client)
+Client (React / Postman)
         |
         v
-Express (server.js :5000)
+Express (server.js — PORT from .env)
+  → express.json()
+  → cors({ origin: CORS_ORIGIN from .env })
+  → requestLogger
+  → /tasks router
+  → notFoundHandler
+  → errorHandler
         |
         v
 Mongoose ODM (models/Task.js)
@@ -25,7 +33,21 @@ MongoDB Atlas
         └── tasks collection
 ```
 
-The server connects to MongoDB on startup via `MONGO_URI` in `.env`. The API does not start if the database connection fails.
+The server requires `MONGO_URI`, `PORT`, and `CORS_ORIGIN` in `.env`. It does not start if MongoDB connection fails or required env vars are missing.
+
+---
+
+## Environment Variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `MONGO_URI` | Yes | MongoDB Atlas connection string |
+| `PORT` | Yes (example default 5000) | HTTP listen port |
+| `CORS_ORIGIN` | Yes | Allowed frontend origin, e.g. `http://localhost:5173` |
+
+Copy `.env.example` → `.env` and fill real values. **Never commit `.env`.**
+
+Do not hardcode port or CORS origin in `server.js`.
 
 ---
 
@@ -35,10 +57,11 @@ The server connects to MongoDB on startup via `MONGO_URI` in `.env`. The API doe
 task-manager-api-24it093/
 ├── context.md                      # Permanent project memory (this file)
 ├── README.md                       # Setup instructions & practical documentation
-├── .env.example                    # MongoDB URI template (committed)
+├── API_SPECIFICATION.md            # Endpoint / middleware documentation
+├── .env.example                    # MONGO_URI, PORT, CORS_ORIGIN templates (committed)
 ├── .env                            # Local secrets — gitignored
-├── package.json                    # Express, Mongoose, dotenv dependencies
-├── server.js                       # dotenv, mongoose.connect, middleware pipeline
+├── package.json                    # Express, Mongoose, dotenv, cors
+├── server.js                       # dotenv, cors, mongoose.connect, listen(PORT)
 ├── models/
 │   └── Task.js                     # Mongoose schema, validation, pre-save hooks
 ├── routes/
@@ -67,7 +90,7 @@ task-manager-api-24it093/
 
 **Why:** Practical 5 replaces in-memory numeric IDs with MongoDB's native `_id` (ObjectId). Mongoose auto-generates these on `Task.create()`.
 
-**Assumption:** Week 6 frontend integration will use `_id` from API responses when calling `/tasks/:id`.
+**Assumption:** Frontend uses `_id` from API responses when calling `/tasks/:id`.
 
 ### 3. Validation split between middleware, schema, and error handler
 
@@ -81,6 +104,12 @@ task-manager-api-24it093/
 
 **Why:** Express only calls `app.listen()` after `mongoose.connect()` succeeds. Prevents serving CRUD requests against a disconnected database.
 
+### 6. Env-based PORT and CORS_ORIGIN (Practical 6)
+
+**Why:** Avoid hardcoded `5000` / `localhost:5173` in source. Local and future deploy targets differ; `.env` keeps those values out of git.
+
+**Behavior:** `cors({ origin: process.env.CORS_ORIGIN })`. Server exits early if `MONGO_URI` or `CORS_ORIGIN` is missing.
+
 ---
 
 ## Technologies & Versions
@@ -89,8 +118,8 @@ task-manager-api-24it093/
 |-------|-----------|---------|
 | Backend runtime | Node.js | 18+ |
 | Backend framework | Express | ^4.21.2 |
-| ODM | Mongoose | ^8.x |
-| Environment config | dotenv | ^16.x |
+| ODM | Mongoose | ^8.x / ^9.x |
+| Environment config | dotenv | ^16.x / ^17.x |
 | CORS | cors | ^2.x |
 | Database | MongoDB Atlas | Cloud |
 | Backend module system | CommonJS | (default) |
@@ -101,7 +130,7 @@ task-manager-api-24it093/
 
 ### Practical 4 – RESTful API with Node.js and Express
 
-- Express server on port 5000 with full CRUD for `/tasks`
+- Express server with full CRUD for `/tasks`
 - In-memory task array (replaced in Practical 5)
 - Middleware pipeline: logging → routes → 404 handler → global error handler
 - Supplementary: Content-Type validation, task ID validation, structured 404 responses
@@ -117,9 +146,9 @@ task-manager-api-24it093/
 
 ### Practical 6 – Full Stack Integration (CORS for React)
 
-- `cors` middleware enabled with origin from `CORS_ORIGIN` in `.env`
-- `PORT` read from `.env`
-- Frontend lives in separate repo `maharshsolanki-v2` (no monorepo merge)
+- `cors` middleware with origin from `CORS_ORIGIN` in `.env`
+- `PORT` from `.env`
+- Frontend in separate repo `maharshsolanki-v2` (uses `VITE_API_BASE_URL`)
 - No Task schema or controller changes for this practical
 
 ---
@@ -128,7 +157,7 @@ task-manager-api-24it093/
 
 | Area | Status |
 |------|--------|
-| MongoDB connection | Complete |
+| MongoDB connection | Complete (`MONGO_URI`) |
 | Task schema + model | Complete |
 | Backend CRUD (`/tasks`) | Complete (MongoDB-backed) |
 | Logging middleware | Complete |
@@ -138,7 +167,8 @@ task-manager-api-24it093/
 | Global error handler (ValidationError) | Complete |
 | Pre-save title trim | Complete |
 | Priority enum field | Complete |
-| CORS | Complete (Practical 6) |
+| PORT from env | Complete |
+| CORS from env (`CORS_ORIGIN`) | Complete (Practical 6) |
 | Frontend integration | Complete in `maharshsolanki-v2` (Practical 6) |
 | JWT authentication | Not started (Week 7) |
 
@@ -150,6 +180,7 @@ task-manager-api-24it093/
 - **API responses**: Consistent JSON with `{ error: "..." }` for failures; Mongoose documents for successes
 - **Validation errors**: `{ error: "Validation failed", details: [{ field, message }] }` — never raw Mongoose objects
 - **HTTP status codes**: 200, 201, 400 (validation/invalid ID), 404 (not found), 500 (server error)
+- **Config**: no hardcoded host/port/CORS — use `.env`
 - **Git commits**: Conventional Commits format (`feat:`, `docs:`, etc.)
 - **Secrets**: `.env` gitignored; `.env.example` committed with placeholders
 
@@ -159,7 +190,7 @@ task-manager-api-24it093/
 
 - MongoDB connection string must stay in `.env` — never committed to git
 - `PORT` and `CORS_ORIGIN` configured via `.env` (see `.env.example`)
-- CORS is enabled for the frontend origin defined in `CORS_ORIGIN`
+- CORS allows only the origin defined in `CORS_ORIGIN`
 - No JWT or authentication yet (Week 7)
 - No Docker, caching, or EventEmitter yet (Weeks 9–11)
 
@@ -168,11 +199,13 @@ task-manager-api-24it093/
 ## Verification Commands
 
 ```bash
+cp .env.example .env   # set MONGO_URI, PORT, CORS_ORIGIN
 npm install
-npm start              # MongoDB connected → Server running on port 5000
+npm start              # MongoDB connected → Server running on port <PORT>
+                       # CORS origin: <CORS_ORIGIN>
 ```
 
-Test CRUD in Postman against `http://localhost:5000/tasks`. Restart the server to confirm data persists in MongoDB.
+Test CRUD in Postman against `http://localhost:<PORT>/tasks`. Restart the server to confirm data persists in MongoDB.
 
 ---
 
@@ -182,5 +215,6 @@ Test CRUD in Postman against `http://localhost:5000/tasks`. Restart the server t
 - Database name `task-manager-api` on MongoDB Atlas cluster
 - `title` is required at schema level; whitespace-only titles fail after pre-save trim
 - `priority` is optional; invalid enum values return structured 400 validation errors
-- Postman/Thunder Client is the primary testing tool
+- Local frontend origin matches `CORS_ORIGIN` (typically Vite on 5173)
+- Postman/Thunder Client remains useful for backend-only checks
 - Lab screenshots are captured manually outside the repository
