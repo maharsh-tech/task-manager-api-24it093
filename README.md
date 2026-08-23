@@ -16,6 +16,8 @@ cp .env.example .env
 #   MONGO_URI     — MongoDB Atlas connection string
 #   PORT          — API port (default example: 5000)
 #   CORS_ORIGIN   — allowed frontend origin (example: http://localhost:5173)
+#   JWT_SECRET    — signing secret for JWT (never commit real value)
+#   JWT_EXPIRES_IN — token expiry (example: 1h)
 ```
 
 2. Install dependencies and start the server:
@@ -40,6 +42,35 @@ CORS origin: <CORS_ORIGIN>
 1. Start this API (`npm start`) using values from `.env`.
 2. In the frontend repo, set `VITE_API_BASE_URL` to this API and run `npm run dev`.
 3. The React app calls the API via `src/api.js` (no hardcoded host).
+
+---
+
+## Practical 7 – Authentication and Middleware Pipeline
+
+### Auth endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/auth/register` | No | Create user (bcrypt hashed password) → 201 |
+| POST | `/auth/login` | No | Verify password → `{ token }` JWT (1h) |
+| GET | `/auth/me` | Bearer JWT | Current user `{ id, email }` |
+
+All `/tasks` routes require `Authorization: Bearer <token>`.
+
+POST `/tasks` runs validation middleware first — missing `title` returns 400 before the database.
+
+### Postman test flow
+
+1. `POST /auth/register` with `{ "email", "password" }`
+2. `POST /auth/login` → copy `token`
+3. Set header `Authorization: Bearer <token>`
+4. `GET /tasks`, `POST /tasks`, etc.
+
+### Theory & Analysis
+
+1. **Why hash passwords?** Plain-text storage exposes every account if the database leaks. bcrypt is slow and salted, making stolen hashes hard to reverse.
+2. **What does auth middleware verify?** It reads the Bearer token, verifies the JWT signature and expiry, and sets `req.user`. Missing or expired tokens return 401.
+3. **Why server validation if the frontend validates?** Any client (Postman, curl) can call the API directly. Middleware rejects malformed bodies before Mongoose/DB.
 
 ---
 

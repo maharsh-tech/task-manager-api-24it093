@@ -3,8 +3,8 @@
 ## Project Overview
 
 - **Project Name**: Task Manager API (`task-manager-api-24it093`)
-- **Repository**: Standalone Express backend for Practicals 4, 5, and 6
-- **Backend Stack**: Node.js, Express 4 (CommonJS), MongoDB via Mongoose, `cors`, `dotenv`
+- **Repository**: Standalone Express backend for Practicals 4–7
+- **Backend Stack**: Node.js, Express 4 (CommonJS), MongoDB via Mongoose, `cors`, `dotenv`, `jsonwebtoken`, `bcryptjs`
 - **Data Storage**: MongoDB Atlas (`task-manager-api` database, `tasks` collection)
 - **Frontend repo**: [maharshsolanki-v2](https://github.com/maharsh-tech/maharshsolanki-v2) (separate — no monorepo)
 - **Env config**: `.env` (gitignored) + `.env.example` (committed)
@@ -21,19 +21,20 @@ Express (server.js — PORT from .env)
   → express.json()
   → cors({ origin: CORS_ORIGIN from .env })
   → requestLogger
-  → /tasks router
+  → /auth router (register, login public; /me protected)
+  → /tasks router (auth → validation → CRUD)
   → notFoundHandler
   → errorHandler
         |
         v
-Mongoose ODM (models/Task.js)
+Mongoose (User, Task)
         |
         v
 MongoDB Atlas
         └── tasks collection
 ```
 
-The server requires `MONGO_URI`, `PORT`, and `CORS_ORIGIN` in `.env`. It does not start if MongoDB connection fails or required env vars are missing.
+The server requires `MONGO_URI`, `PORT`, `CORS_ORIGIN`, and `JWT_SECRET` in `.env`.
 
 ---
 
@@ -44,6 +45,8 @@ The server requires `MONGO_URI`, `PORT`, and `CORS_ORIGIN` in `.env`. It does no
 | `MONGO_URI` | Yes | MongoDB Atlas connection string |
 | `PORT` | Yes (example default 5000) | HTTP listen port |
 | `CORS_ORIGIN` | Yes | Allowed frontend origin, e.g. `http://localhost:5173` |
+| `JWT_SECRET` | Yes | JWT signing secret |
+| `JWT_EXPIRES_IN` | Yes | Token expiry, e.g. `1h` |
 
 Copy `.env.example` → `.env` and fill real values. **Never commit `.env`.**
 
@@ -151,6 +154,14 @@ task-manager-api-24it093/
 - Frontend in separate repo `maharshsolanki-v2` (uses `VITE_API_BASE_URL`)
 - No Task schema or controller changes for this practical
 
+### Practical 7 – Authentication and Middleware Pipeline
+
+- User model with bcrypt-hashed passwords
+- `POST /auth/register`, `POST /auth/login` (JWT on login, 1h expiry from env)
+- `GET /auth/me` protected by JWT middleware
+- All `/tasks` routes require JWT
+- `validateTaskBody` rejects POST without title before DB
+
 ---
 
 ## Current Implementation Status
@@ -169,8 +180,8 @@ task-manager-api-24it093/
 | Priority enum field | Complete |
 | PORT from env | Complete |
 | CORS from env (`CORS_ORIGIN`) | Complete (Practical 6) |
-| Frontend integration | Complete in `maharshsolanki-v2` (Practical 6) |
-| JWT authentication | Not started (Week 7) |
+| JWT auth + protected `/tasks` | Complete (Practical 7) |
+| Frontend integration | Complete in `maharshsolanki-v2` (Practical 6–7) |
 
 ---
 
