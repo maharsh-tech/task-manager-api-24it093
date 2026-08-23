@@ -5,8 +5,11 @@ const taskSchema = new mongoose.Schema({
   description: { type: String },
   completed: { type: Boolean, default: false },
   priority: { type: String, enum: ['low', 'medium', 'high'] },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
 })
+
+taskSchema.index({ userId: 1 })
 
 taskSchema.pre('save', function () {
   if (this.title) {
