@@ -7,6 +7,7 @@ const requestLogger = require('./middleware/logger')
 const notFoundHandler = require('./middleware/notFound')
 const errorHandler = require('./middleware/errorHandler')
 const tasksRouter = require('./routes/tasks')
+const authRouter = require('./routes/auth')
 
 const app = express()
 const PORT = Number(process.env.PORT) || 5000
@@ -22,10 +23,16 @@ if (!CORS_ORIGIN) {
   process.exit(1)
 }
 
+if (!process.env.JWT_SECRET) {
+  console.error('Missing JWT_SECRET in .env')
+  process.exit(1)
+}
+
 app.use(express.json())
 app.use(cors({ origin: CORS_ORIGIN }))
 app.use(requestLogger)
 
+app.use('/auth', authRouter)
 app.use('/tasks', tasksRouter)
 
 app.use(notFoundHandler)
