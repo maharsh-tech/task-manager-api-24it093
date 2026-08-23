@@ -55,16 +55,23 @@ CORS origin: <CORS_ORIGIN>
 | POST | `/auth/login` | No | Verify password → `{ token }` JWT (1h) |
 | GET | `/auth/me` | Bearer JWT | Current user `{ id, email }` |
 
-All `/tasks` routes require `Authorization: Bearer <token>`.
+All `/tasks` routes require `Authorization: Bearer <token>`. Each user only sees and manages their own tasks (`userId` on the Task model, set from the JWT on create).
 
 POST `/tasks` runs validation middleware first — missing `title` returns 400 before the database.
+
+Legacy tasks from before per-user scoping (no `userId`) were removed. To clean any stragglers:
+
+```bash
+npm run cleanup:legacy-tasks
+```
 
 ### Postman test flow
 
 1. `POST /auth/register` with `{ "email", "password" }`
 2. `POST /auth/login` → copy `token`
 3. Set header `Authorization: Bearer <token>`
-4. `GET /tasks`, `POST /tasks`, etc.
+4. `GET /tasks`, `POST /tasks`, etc. — each account gets its own task list
+5. Log in as a different user → empty list (cannot read another user's task by id → 404)
 
 ### Theory & Analysis
 

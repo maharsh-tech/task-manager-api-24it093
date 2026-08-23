@@ -161,6 +161,8 @@ task-manager-api-24it093/
 - `GET /auth/me` protected by JWT middleware
 - All `/tasks` routes require JWT
 - `validateTaskBody` rejects POST without title before DB
+- **Per-user tasks:** Task schema `userId` ref User; CRUD scoped to `req.user.id` from JWT
+- Legacy shared tasks (pre-auth, no `userId`) removed via `npm run cleanup:legacy-tasks`
 
 ---
 
@@ -181,6 +183,7 @@ task-manager-api-24it093/
 | PORT from env | Complete |
 | CORS from env (`CORS_ORIGIN`) | Complete (Practical 6) |
 | JWT auth + protected `/tasks` | Complete (Practical 7) |
+| Per-user task ownership (`userId`) | Complete |
 | Frontend integration | Complete in `maharshsolanki-v2` (Practical 6–7) |
 
 ---
