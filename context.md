@@ -185,6 +185,7 @@ task-manager-api-24it093/
 | JWT auth + protected `/tasks` | Complete (Practical 7) |
 | Per-user task ownership (`userId`) | Complete |
 | Frontend integration | Complete in `maharshsolanki-v2` (Practical 6–7) |
+| In-memory caching (node-cache, per-user, TTL 60s) | Complete (Practical 9) |
 
 ---
 
@@ -206,7 +207,7 @@ task-manager-api-24it093/
 - `PORT` and `CORS_ORIGIN` configured via `.env` (see `.env.example`)
 - CORS allows only the origin defined in `CORS_ORIGIN`
 - No JWT or authentication yet (Week 7)
-- No Docker, caching, or EventEmitter yet (Weeks 9–11)
+- No Docker or EventEmitter yet (Weeks 10–11)
 
 ---
 
