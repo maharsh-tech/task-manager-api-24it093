@@ -45,6 +45,43 @@ CORS origin: <CORS_ORIGIN>
 
 ---
 
+## Practical 9 – In-Memory Caching and Query Optimization
+
+### What Changed
+
+Installed `node-cache` and created a shared cache instance in `utils/cache.js` (60-second TTL). The `GET /tasks` endpoint now checks the cache before querying MongoDB; on a miss it queries and stores the result, on a hit it returns directly from memory. `POST /tasks`, `PUT /tasks/:id`, and `DELETE /tasks/:id` invalidate the cache after every successful write — failed writes (404, validation error) do not touch the cache.
+
+### Per-User Cache Key (`all_tasks:<userId>`)
+
+The cache key is **not** a single global `'all_tasks'`. Because every task is scoped to `req.user.id` (set by JWT middleware), a global key would serve User A's task list to User B on a cache hit. Using `` `all_tasks:${req.user.id}` `` isolates each user's cached list.
+
+### Response Time Comparison (Cached vs Uncached)
+
+> **Note:** No live MongoDB connection was available in this environment. The table below is a placeholder — fill it in using Postman/Thunder Client or the `curl -w "%{time_total}\n"` technique described in the booklet.
+
+<!-- TODO: student to fill in with real readings from Postman / curl -->
+
+| Sample | Uncached (s) | Cached (s) |
+|--------|-------------|------------|
+| 1 | ___ | ___ |
+| 2 | ___ | ___ |
+| 3 | ___ | ___ |
+
+The first cached request (cache MISS) should be similar to uncached. Requests 2–3 (cache HITs) should be noticeably faster since they skip the MongoDB round-trip entirely.
+
+### Key Questions
+
+#### 1. Why must the cache be invalidated on every write, and what breaks if it isn't?
+If the cache is not invalidated after a create, update, or delete, subsequent `GET /tasks` requests return stale data from the cache — a newly created task won't appear, a deleted task will still show, or an updated field will display its old value. The user sees data that doesn't match what's actually in MongoDB until the TTL expires.
+
+#### 2. What is a reasonable TTL trade-off in this context?
+A 60-second TTL balances freshness and performance: reads within the window are instant (no MongoDB query), and even if a write-invalidation is somehow missed, data self-corrects within a minute. A much shorter TTL (e.g. 5s) reduces the benefit; a much longer one (e.g. 10min) risks serving noticeably stale data if invalidation fails or a different process writes directly to the database.
+
+#### 3. Why doesn't node-cache work correctly across multiple server instances?
+`node-cache` stores data in the Node.js process's own heap memory. If you run two instances behind a load balancer, each has its own independent cache. A write hitting Instance A invalidates A's cache but Instance B still serves its stale copy. For multi-instance deployments, a shared external store like Redis is required.
+
+---
+
 ## Practical 7 – Authentication and Middleware Pipeline
 
 ### Auth endpoints
