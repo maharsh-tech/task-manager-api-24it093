@@ -1,4 +1,5 @@
 const Task = require('../models/Task')
+const cache = require('../utils/cache')
 
 function pickTaskFields(body) {
   const { title, description, completed, priority } = body
@@ -14,7 +15,14 @@ function pickTaskFields(body) {
 
 async function getAllTasks(req, res, next) {
   try {
+    const cacheKey = `all_tasks:${req.user.id}`
+    const cached = cache.get(cacheKey)
+    if (cached) {
+      return res.status(200).json(cached)
+    }
+
     const tasks = await Task.find({ userId: req.user.id }).sort({ createdAt: -1 })
+    cache.set(cacheKey, tasks)
     res.status(200).json(tasks)
   } catch (err) {
     next(err)
@@ -42,6 +50,7 @@ async function createTask(req, res, next) {
       ...pickTaskFields(req.body),
       userId: req.user.id,
     })
+    cache.del(`all_tasks:${req.user.id}`)
     res.status(201).json(task)
   } catch (err) {
     next(err)
@@ -61,6 +70,7 @@ async function updateTask(req, res, next) {
       return res.status(404).json({ error: `Task with id ${id} not found` })
     }
 
+    cache.del(`all_tasks:${req.user.id}`)
     res.status(200).json(task)
   } catch (err) {
     next(err)
@@ -76,6 +86,7 @@ async function deleteTask(req, res, next) {
       return res.status(404).json({ error: `Task with id ${id} not found` })
     }
 
+    cache.del(`all_tasks:${req.user.id}`)
     res.status(200).json({ message: 'Task deleted successfully', task })
   } catch (err) {
     next(err)
