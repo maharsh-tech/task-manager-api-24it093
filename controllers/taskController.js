@@ -1,5 +1,6 @@
 const Task = require('../models/Task')
 const cache = require('../utils/cache')
+const taskEvents = require('../events')
 
 function pickTaskFields(body) {
   const { title, description, completed, priority } = body
@@ -51,7 +52,9 @@ async function createTask(req, res, next) {
       userId: req.user.id,
     })
     cache.del(`all_tasks:${req.user.id}`)
+    console.log(`[API] Response sent at ${new Date().toISOString()}`)
     res.status(201).json(task)
+    taskEvents.emit('task-created', task)
   } catch (err) {
     next(err)
   }
@@ -88,6 +91,7 @@ async function deleteTask(req, res, next) {
 
     cache.del(`all_tasks:${req.user.id}`)
     res.status(200).json({ message: 'Task deleted successfully', task })
+    taskEvents.emit('task-deleted', task)
   } catch (err) {
     next(err)
   }

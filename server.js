@@ -8,6 +8,7 @@ const notFoundHandler = require('./middleware/notFound')
 const errorHandler = require('./middleware/errorHandler')
 const tasksRouter = require('./routes/tasks')
 const authRouter = require('./routes/auth')
+require('./listeners')
 
 const app = express()
 const PORT = Number(process.env.PORT) || 5000
