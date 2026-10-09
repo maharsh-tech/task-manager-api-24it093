@@ -45,6 +45,50 @@ CORS origin: <CORS_ORIGIN>
 
 ---
 
+## Practical 10 – Asynchronous Processing with Event-Driven Architecture
+
+### What Changed
+
+Implemented asynchronous background processing using Node.js native `EventEmitter` to decouple side effects from the main HTTP request-response cycle without external message broker dependencies.
+
+1. **`events.js`**: Created a dedicated event emitter module extending native `EventEmitter` and exported a singleton `TaskEvents` instance.
+2. **`listeners.js`**: Registered listeners for:
+   - `task-created`: Logs task title, timestamp, and assigned user ID. Features an artificial 2-second delay (`setTimeout`) to demonstrate non-blocking execution.
+   - `task-deleted`: Logs task deletion with task title and assigned user ID.
+   - `error`: Catches and logs errors thrown during event processing.
+3. **`server.js`**: Requires `listeners.js` once on server startup to register listeners.
+4. **`controllers/taskController.js`**:
+   - `createTask`: Logs timestamp, sends `res.status(201).json(task)` immediately, and emits `task-created`.
+   - `deleteTask`: Sends `res.status(200)` immediately and emits `task-deleted`.
+
+### Execution & Console Log Evidence
+
+Running the verification script (`node scripts/test-events.js`) demonstrates that the HTTP response is sent immediately before background listeners complete:
+
+```
+[API] Response sent at 2026-10-09T04:22:37.528Z
+[Notification] Task "Delete Test" deleted at 2026-10-09T04:22:37.527Z (Assigned User: user_test_99)
+[Notification] Task "Async Non-Blocking Test" created at 2026-10-09T04:22:39.529Z (Assigned User: user_test_101)
+```
+
+The API response timestamp (`...37.528Z`) precedes the listener completion timestamp (`...39.529Z`) by ~2 seconds, confirming non-blocking execution.
+
+### Key Questions & Analysis
+
+#### 1. Why does emitting an event not block the API response, even though both run on the same Node.js process?
+The HTTP response `res.status(201).json(task)` writes to the response stream immediately. When async work (like `setTimeout` or async I/O) is scheduled in the event listener, Node's event loop offloads execution to the task queues, allowing the call stack to complete and the HTTP response to flush to the client without waiting for the background job to finish.
+
+#### 2. What would happen to API response time if the notification logic were placed directly inside the POST route instead of in an event handler?
+The client would be forced to wait for all notification tasks (external webhooks, email delivery, heavy logging) before getting a response. If the notification logic takes 2 seconds, the API response time jumps from ~20ms to >2000ms.
+
+#### 3. Why is EventEmitter a reasonable choice for this scale of application, but not for a production system handling millions of events per day?
+`EventEmitter` is an in-process, in-memory construct. It is lightweight, requires no external dependencies or infrastructure, and is simple to run. However, for large-scale production:
+- **No persistence**: If the Node process crashes or restarts, all in-memory events are lost.
+- **No distribution**: In a multi-instance, load-balanced setup, events cannot be shared across nodes.
+- **No queue semantics**: It lacks built-in retries, dead-letter queues, backpressure, and rate limiting. Production systems require distributed message brokers like RabbitMQ, Apache Kafka, or Redis/BullMQ.
+
+---
+
 ## Practical 9 – In-Memory Caching and Query Optimization
 
 ### What Changed
@@ -277,20 +321,33 @@ Practical 4 established the Express middleware pipeline and CRUD route structure
 ```
 task-manager-api-24it093/
 ├── .env.example                # MongoDB URI template (copy to .env)
-├── server.js                   # App entry: dotenv, mongoose connect, listen(5000)
+├── server.js                   # App entry: dotenv, mongoose connect, listeners, listen(5000)
+├── events.js                   # Custom TaskEvents class extending EventEmitter
+├── listeners.js                # Async task-created, task-deleted, error listeners
 ├── package.json
 ├── models/
-│   └── Task.js                 # Mongoose schema, validation, pre-save hooks
+│   ├── Task.js                 # Mongoose schema, validation, pre-save hooks
+│   └── User.js                 # User schema, password hashing
 ├── routes/
+│   ├── auth.js                 # Register, login, me routes
 │   └── tasks.js                # CRUD route definitions + route middleware
 ├── controllers/
-│   └── taskController.js       # Async Mongoose CRUD handlers
-└── middleware/
-    ├── logger.js               # Global request logging
-    ├── validateContentType.js  # POST/PUT Content-Type check
-    ├── validateTaskId.js       # MongoDB ObjectId validation
-    ├── notFound.js             # 404 handler for undefined routes
-    └── errorHandler.js         # ValidationError, CastError, and 500 handling
+│   ├── authController.js       # Auth handlers (JWT generation, bcrypt compare)
+│   └── taskController.js       # CRUD handlers + event emitting
+├── middleware/
+│   ├── auth.js                 # JWT Bearer token authentication
+│   ├── logger.js               # Global request logging
+│   ├── validateAuthBody.js     # User registration/login validation
+│   ├── validateContentType.js  # POST/PUT Content-Type check
+│   ├── validateTaskId.js       # MongoDB ObjectId validation
+│   ├── validateTaskPayload.js  # Task body validation
+│   ├── notFound.js             # 404 handler for undefined routes
+│   └── errorHandler.js         # ValidationError, CastError, and 500 handling
+├── utils/
+│   └── cache.js                # In-memory node-cache instance
+└── scripts/
+    ├── remove-legacy-tasks.js  # Utility script for database cleanup
+    └── test-events.js          # Practical 10 EventEmitter verification script
 ```
 
 ---

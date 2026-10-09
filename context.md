@@ -63,20 +63,27 @@ task-manager-api-24it093/
 ├── API_SPECIFICATION.md            # Endpoint / middleware documentation
 ├── .env.example                    # MONGO_URI, PORT, CORS_ORIGIN templates (committed)
 ├── .env                            # Local secrets — gitignored
-├── package.json                    # Express, Mongoose, dotenv, cors
-├── server.js                       # dotenv, cors, mongoose.connect, listen(PORT)
+├── package.json                    # Express, Mongoose, dotenv, cors, jsonwebtoken, node-cache
+├── server.js                       # App entry, listeners, listen(PORT)
+├── events.js                       # Custom TaskEvents class extending EventEmitter
+├── listeners.js                    # Async task-created, task-deleted, error listeners
 ├── models/
 │   └── Task.js                     # Mongoose schema, validation, pre-save hooks
 ├── routes/
 │   └── tasks.js                    # CRUD route definitions + route middleware
 ├── controllers/
 │   └── taskController.js           # Async Mongoose CRUD handlers
-└── middleware/
-    ├── logger.js                   # Global request logging
-    ├── validateContentType.js      # POST/PUT Content-Type check
-    ├── validateTaskId.js           # MongoDB ObjectId validation
-    ├── notFound.js                 # 404 handler for undefined routes
-    └── errorHandler.js             # ValidationError, CastError, 500 handling
+├── middleware/
+│   ├── logger.js                   # Global request logging
+│   ├── validateContentType.js      # POST/PUT Content-Type check
+│   ├── validateTaskId.js           # MongoDB ObjectId validation
+│   ├── notFound.js                 # 404 handler for undefined routes
+│   └── errorHandler.js             # ValidationError, CastError, 500 handling
+├── utils/
+│   └── cache.js                    # In-memory node-cache instance
+└── scripts/
+    ├── remove-legacy-tasks.js      # Database cleanup script
+    └── test-events.js              # Practical 10 EventEmitter verification script
 ```
 
 ---
@@ -186,6 +193,7 @@ task-manager-api-24it093/
 | Per-user task ownership (`userId`) | Complete |
 | Frontend integration | Complete in `maharshsolanki-v2` (Practical 6–7) |
 | In-memory caching (node-cache, per-user, TTL 60s) | Complete (Practical 9) |
+| Async event-driven processing (EventEmitter) | Complete (Practical 10) |
 
 ---
 
@@ -206,8 +214,8 @@ task-manager-api-24it093/
 - MongoDB connection string must stay in `.env` — never committed to git
 - `PORT` and `CORS_ORIGIN` configured via `.env` (see `.env.example`)
 - CORS allows only the origin defined in `CORS_ORIGIN`
-- No JWT or authentication yet (Week 7)
-- No Docker or EventEmitter yet (Weeks 10–11)
+- Practicals 4–10 complete
+- Next upcoming practical: Practical 11 (Docker containerization)
 
 ---
 
