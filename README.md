@@ -45,6 +45,70 @@ CORS origin: <CORS_ORIGIN>
 
 ---
 
+## Practical 11 – Containerization with Docker and Docker Compose
+
+### What Changed
+
+Containerized the full-stack Task Management application using Docker and orchestrated all services using Docker Compose so the entire stack starts with a single command.
+
+1. **`Dockerfile` (backend)**: Node 18 image, copies `package*.json` first for layer caching, runs `npm install`, copies source, exposes port 5000, runs `node server.js`.
+2. **`Dockerfile` (frontend — `../maharshsolanki-v2`)**: Node 18 multi-stage build — installs dependencies and builds the Vite app, then exposes port 5173 and runs `npm run preview -- --host`.
+3. **`docker-compose.yml`**: Defines 3 services on a shared `app-network` bridge:
+   - `mongodb` — official `mongo:7` image, port 27017, named volume `mongo-data` for persistence.
+   - `backend` — built from current directory, port 5000, `MONGO_URI` set to `mongodb://mongodb:27017/taskdb` (service name, not localhost).
+   - `frontend` — built from `../maharshsolanki-v2`, port 5173, depends on backend.
+4. **`.dockerignore`** (both repos): Excludes `node_modules`, `.env`, `.git`, and documentation from build context.
+
+### Architecture
+
+```
+docker-compose.yml
+├── frontend  (React / Vite, port 5173)
+├── backend   (Node / Express, port 5000)
+└── mongodb   (official mongo image, port 27017)
+
+Network: app-network (bridge)
+frontend ──► backend ──► mongodb
+All 3 services start together via: docker-compose up
+```
+
+### Running the Full Stack
+
+```bash
+# Verify Docker is installed
+docker --version
+docker compose version
+
+# Start all services (from the backend repo root)
+docker-compose up --build
+
+# Confirm all containers are running
+docker ps
+
+# Stop all services
+docker-compose down
+```
+
+The app is accessible at:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:5000`
+- MongoDB: `mongodb://localhost:27017`
+
+### Key Questions & Analysis
+
+#### 1. Why does the backend container need to reference MongoDB by its service name (`mongodb`) rather than `localhost`?
+Each Docker container has its own network namespace — `localhost` inside the backend container refers to the backend container itself, not the MongoDB container. Docker Compose creates a shared bridge network where containers are accessible by their service name. The service name `mongodb` resolves to the MongoDB container's IP on the `app-network` bridge, allowing the backend to connect.
+
+#### 2. What is the difference between `EXPOSE` in a Dockerfile and the `ports` mapping in `docker-compose.yml`?
+`EXPOSE` is a documentation directive — it declares which port the container listens on but does not publish it to the host. The `ports` mapping in `docker-compose.yml` (e.g., `"5000:5000"`) actually publishes the container port to the host machine, making it accessible from `localhost:5000` on the host. Without `ports`, the service is only reachable from other containers on the same Docker network.
+
+#### 3. Why is it bad practice to copy `node_modules` into a Docker image instead of running `npm install` inside the container?
+- **Platform mismatch**: Native binary modules (e.g., `bcrypt`) compiled on the host OS may not work inside the Linux container.
+- **Bloated build context**: `node_modules` can be hundreds of megabytes, slowing down the `COPY` step and inflating the image.
+- **Non-reproducible builds**: The image should be self-contained — installing from `package-lock.json` inside the container guarantees the exact dependency tree regardless of the host's state.
+
+---
+
 ## Practical 10 – Asynchronous Processing with Event-Driven Architecture
 
 ### What Changed
@@ -320,7 +384,10 @@ Practical 4 established the Express middleware pipeline and CRUD route structure
 
 ```
 task-manager-api-24it093/
+├── .dockerignore               # Excludes node_modules, .env from Docker build
 ├── .env.example                # MongoDB URI template (copy to .env)
+├── Dockerfile                  # Backend container: Node 18, port 5000
+├── docker-compose.yml          # Orchestrates frontend, backend, MongoDB
 ├── server.js                   # App entry: dotenv, mongoose connect, listeners, listen(5000)
 ├── events.js                   # Custom TaskEvents class extending EventEmitter
 ├── listeners.js                # Async task-created, task-deleted, error listeners
