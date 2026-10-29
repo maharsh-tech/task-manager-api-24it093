@@ -57,10 +57,29 @@ async function generateDescription(req, res) {
         },
       ],
       temperature: 0.7,
-      max_tokens: 150,
+      max_tokens: 300,
+      include_reasoning: false,
     })
 
-    const generated = completion?.choices?.[0]?.message?.content?.trim() || ''
+    let generated = completion?.choices?.[0]?.message?.content?.trim() || ''
+
+    // If a reasoning model was selected and content is empty, attempt extraction from reasoning
+    if (!generated && completion?.choices?.[0]?.message?.reasoning) {
+      const reasoning = completion.choices[0].message.reasoning.trim()
+      const lines = reasoning.split('\n').filter((l) => l.trim().length > 0)
+      generated = lines[lines.length - 1] || ''
+    }
+
+    // Clean formatting prefixes or quotes if present
+    generated = generated.replace(/^(\*\*Description:\*\*|Description:|"|')\s*/i, '').replace(/["']$/g, '').trim()
+
+    if (!generated) {
+      return res.status(200).json({
+        description: '',
+        fallback: true,
+        error: 'AI service returned an empty suggestion. Please type your description manually.',
+      })
+    }
 
     // Update rate limit on successful external call
     rateLimitMap.set(clientKey, now)
