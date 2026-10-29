@@ -8,6 +8,7 @@ const notFoundHandler = require('./middleware/notFound')
 const errorHandler = require('./middleware/errorHandler')
 const tasksRouter = require('./routes/tasks')
 const authRouter = require('./routes/auth')
+const aiRouter = require('./routes/ai')
 require('./listeners')
 
 const app = express()
@@ -20,6 +21,8 @@ app.use(requestLogger)
 
 app.use('/auth', authRouter)
 app.use('/tasks', tasksRouter)
+app.use('/api/ai', aiRouter)
+app.use('/ai', aiRouter)
 
 app.use(notFoundHandler)
 app.use(errorHandler)
