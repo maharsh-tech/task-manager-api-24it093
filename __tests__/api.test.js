@@ -8,7 +8,7 @@ const app = require('../server')
 describe('API Route and Auth Guard Tests (Practical 12)', () => {
   it('GET /tasks without authorization header should return 401 Unauthorized', async () => {
     const res = await request(app).get('/tasks')
-    expect(res.statusCode).toBe(200)
+    expect(res.statusCode).toBe(401)
     expect(res.body).toHaveProperty('error', 'Unauthorized')
   })
 
