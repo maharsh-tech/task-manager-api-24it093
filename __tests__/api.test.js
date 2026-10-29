@@ -17,4 +17,38 @@ describe('API Route and Auth Guard Tests (Practical 12)', () => {
     expect(res.statusCode).toBe(404)
     expect(res.body).toHaveProperty('error', 'Route not found')
   })
+
+  describe('AI Description Generator (Practical 13)', () => {
+    it('POST /api/ai/generate-description without body or title returns 400 validation error', async () => {
+      const res = await request(app)
+        .post('/api/ai/generate-description')
+        .send({})
+        .set('Content-Type', 'application/json')
+
+      expect(res.statusCode).toBe(400)
+      expect(res.body).toHaveProperty('error', 'Validation failed')
+    })
+
+    it('POST /api/ai/generate-description without application/json header returns 400', async () => {
+      const res = await request(app)
+        .post('/api/ai/generate-description')
+        .send('title=Test')
+        .set('Content-Type', 'text/plain')
+
+      expect(res.statusCode).toBe(400)
+      expect(res.body).toHaveProperty('error', 'Content-Type must be application/json')
+    })
+
+    it('POST /api/ai/generate-description degrades gracefully with fallback response on external failure', async () => {
+      // With test/invalid key, the endpoint must return 200 with fallback: true instead of 500
+      const res = await request(app)
+        .post('/api/ai/generate-description')
+        .send({ title: 'Refactor authentication middleware' })
+        .set('Content-Type', 'application/json')
+
+      expect(res.statusCode).toBe(200)
+      expect(res.body).toHaveProperty('fallback')
+      expect(typeof res.body.description).toBe('string')
+    })
+  })
 })
