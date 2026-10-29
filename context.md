@@ -194,6 +194,9 @@ task-manager-api-24it093/
 | Frontend integration | Complete in `maharshsolanki-v2` (Practical 6–7) |
 | In-memory caching (node-cache, per-user, TTL 60s) | Complete (Practical 9) |
 | Async event-driven processing (EventEmitter) | Complete (Practical 10) |
+| Containerization (Docker, Docker Compose) | Complete (Practical 11) |
+| CI/CD Pipeline (GitHub Actions, Jest, Supertest) | Complete (Practical 12) |
+| AI API Integration (OpenAI SDK, OpenRouter, Graceful Fallback) | Complete (Practical 13) |
 
 ---
 
@@ -214,8 +217,7 @@ task-manager-api-24it093/
 - MongoDB connection string must stay in `.env` — never committed to git
 - `PORT` and `CORS_ORIGIN` configured via `.env` (see `.env.example`)
 - CORS allows only the origin defined in `CORS_ORIGIN`
-- Practicals 4–10 complete
-- Next upcoming practical: Practical 11 (Docker containerization)
+- Practicals 4–13 complete
 
 ---
 
