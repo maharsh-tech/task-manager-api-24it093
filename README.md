@@ -1,6 +1,8 @@
 # Task Manager API (24IT093)
 
-Express REST API for task management — **Practical 4, 5 & 6: RESTful API with Node.js, Express, MongoDB, and CORS for React**.
+[![CI Pipeline](https://github.com/maharsh-tech/task-manager-api-24it093/actions/workflows/ci.yml/badge.svg)](https://github.com/maharsh-tech/task-manager-api-24it093/actions/workflows/ci.yml)
+
+Express REST API for task management — **Practical 4, 5, 6, 7, 9, 10, 11 & 12**.
 
 Frontend (separate repo): [maharshsolanki-v2](https://github.com/maharsh-tech/maharshsolanki-v2)
 
@@ -42,6 +44,86 @@ CORS origin: <CORS_ORIGIN>
 1. Start this API (`npm start`) using values from `.env`.
 2. In the frontend repo, set `VITE_API_BASE_URL` to this API and run `npm run dev`.
 3. The React app calls the API via `src/api.js` (no hardcoded host).
+
+---
+
+## Practical 12 – CI/CD Pipeline with GitHub Actions
+
+### What Changed
+
+Implemented an automated Continuous Integration (CI) pipeline using **GitHub Actions** to test the API automatically on every push and pull request to the `main` branch.
+
+1. **Refactored `server.js` for Testability**:
+   - Encapsulated database connection logic and `app.listen()` inside `if (require.main === module)` guard.
+   - Exported the Express `app` instance (`module.exports = app`) so test runners like Supertest can import and execute HTTP assertions in-memory without starting an HTTP listener or crashing on missing database connections.
+2. **Automated Testing Suite (`Jest` + `Supertest`)**:
+   - Installed `jest` and `supertest` as development dependencies.
+   - Configured `"test": "jest --forceExit --detectOpenHandles"` in `package.json`.
+   - Created `__tests__/api.test.js` validating:
+     - `GET /tasks` without a Bearer token returns `401 Unauthorized` (verifies auth middleware rejects unauthenticated requests before querying database).
+     - `GET /nonexistent-route` returns `404 Route not found` (verifies global 404 handler).
+3. **CI Pipeline Workflow (`.github/workflows/ci.yml`)**:
+   - Triggered on `push` and `pull_request` targeting `main`.
+   - Runs on clean `ubuntu-latest` GitHub runner.
+   - Checks out code with `actions/checkout@v4`.
+   - Provisions Node.js 18 with `actions/setup-node@v4` and enables npm caching.
+   - Installs dependencies cleanly using `npm install`.
+   - Runs test suite via `npm test`.
+
+### CI Workflow Configuration
+
+```yaml
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run automated tests
+        run: npm test
+```
+
+### Pipeline Failure & Recovery Demonstration
+
+The CI workflow was systematically demonstrated with both failed and restored states:
+
+1. **Initial Passing Run (Green)**: Verified clean checkout, dependency installation, and passing unit tests.
+2. **Deliberate Failure Run (Red)**: Modified `__tests__/api.test.js` to expect status code `200` instead of `401` on unauthenticated `GET /tasks`. GitHub Actions halted on the failed assertion, exited with non-zero status, and flagged the pipeline run with a failure badge.
+3. **Restoration Run (Green)**: Corrected the assertion back to `401 Unauthorized`, committed, and pushed. The pipeline returned to green checkmark status (`success`).
+
+### Key Questions & Analysis
+
+#### 1. What is Continuous Integration (CI) and why is it essential in collaborative software development?
+Continuous Integration is the software engineering practice where developers regularly merge their code modifications into a central repository, after which automated builds and test suites are run. In collaborative teams, multiple engineers work on separate branches concurrently. Without CI, integrating branches produces conflicting code, undetected regressions, and breaking API changes late in the delivery cycle ("integration hell"). CI ensures every commit is vetted immediately in a clean environment, maintaining a deployable `main` branch.
+
+#### 2. What is the difference between Continuous Integration (CI), Continuous Delivery (CD), and Continuous Deployment (CD)?
+- **Continuous Integration (CI)**: Focuses on automated building and testing on every code change to catch bugs early.
+- **Continuous Delivery (CD)**: Automatically prepares, tests, and stages release-ready artifacts to pre-production/staging environments upon passing CI; promotion to production requires a manual approval step.
+- **Continuous Deployment (CD)**: Takes automation to its fullest extent: every change that passes all stages of the automated pipeline is deployed directly into production without human intervention.
+
+#### 3. Why should CI environments use clean, isolated runners (like GitHub Actions `ubuntu-latest`) rather than running tests on the developer's local machine?
+Local developer machines contain hidden ambient state: existing global packages, persistent `.env` files, local database state, cached node modules, and specific host operating system quirks ("it works on my machine"). A clean runner spins up a fresh, pristine virtual environment. It forces the project to declare every single dependency and environment configuration explicitly in code, guaranteeing reproducibility across platforms and preventing broken builds from slipping into production.
 
 ---
 
@@ -384,8 +466,13 @@ Practical 4 established the Express middleware pipeline and CRUD route structure
 
 ```
 task-manager-api-24it093/
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # GitHub Actions CI workflow (Node 18, npm test)
 ├── .dockerignore               # Excludes node_modules, .env from Docker build
 ├── .env.example                # MongoDB URI template (copy to .env)
+├── __tests__/
+│   └── api.test.js             # Automated API tests (auth guard, 404 handler)
 ├── Dockerfile                  # Backend container: Node 18, port 5000
 ├── docker-compose.yml          # Orchestrates frontend, backend, MongoDB
 ├── server.js                   # App entry: dotenv, mongoose connect, listeners, listen(5000)
